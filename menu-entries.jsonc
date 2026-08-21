@@ -1,0 +1,8 @@
+  // BEGIN obilbie.aur-scan
+  "setup.security.aur-scan": {"icon":"󰮄","label":"AUR Scan","title":"AUR Scan Severity","description":"Minimum severity to prompt on during AUR installs"},
+  "setup.security.aur-scan.critical": {"icon":"󰚌","label":"Critical","checked":"[[ \"$($HOME/.config/omarchy/plugins/obilbie.aur-scan/threshold.sh get)\" == \"critical\" ]]","action":"$HOME/.config/omarchy/plugins/obilbie.aur-scan/threshold.sh set critical"},
+  "setup.security.aur-scan.high": {"icon":"󱐋","label":"High","checked":"[[ \"$($HOME/.config/omarchy/plugins/obilbie.aur-scan/threshold.sh get)\" == \"high\" ]]","action":"$HOME/.config/omarchy/plugins/obilbie.aur-scan/threshold.sh set high"},
+  "setup.security.aur-scan.medium": {"icon":"󰀪","label":"Medium","checked":"[[ \"$($HOME/.config/omarchy/plugins/obilbie.aur-scan/threshold.sh get)\" == \"medium\" ]]","action":"$HOME/.config/omarchy/plugins/obilbie.aur-scan/threshold.sh set medium"},
+  "setup.security.aur-scan.low": {"icon":"󰂚","label":"Low","checked":"[[ \"$($HOME/.config/omarchy/plugins/obilbie.aur-scan/threshold.sh get)\" == \"low\" ]]","action":"$HOME/.config/omarchy/plugins/obilbie.aur-scan/threshold.sh set low"},
+  "setup.security.aur-scan.info": {"icon":"󰋼","label":"Info","checked":"[[ \"$($HOME/.config/omarchy/plugins/obilbie.aur-scan/threshold.sh get)\" == \"info\" ]]","action":"$HOME/.config/omarchy/plugins/obilbie.aur-scan/threshold.sh set info"},
+  // END obilbie.aur-scan
