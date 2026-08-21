@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "obilbie.aur-scan",
+  "name": "AUR Scan",
+  "version": "1.0.0",
+  "author": "Oliver Bilbie",
+  "license": "MIT",
+  "description": "Scan AUR packages with aur-scanner before yay installs them. Findings can be reviewed by an agent.",
+  "kinds": ["service"],
+  "entryPoints": {
+    "service": "Service.qml"
+  }
+}
