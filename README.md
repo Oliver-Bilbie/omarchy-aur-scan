@@ -10,19 +10,32 @@ This plugin aims to strike a balance between reasonable security practices and l
 
 ## How it works
 
-When the plugin is enabled, it will prompt you to install [aur-scanner](https://github.com/KiefStudioMA/ks-aur-scanner) if it is not already present. It will then configure a yay pre-install hook. It also adds an **AUR Scan** item under **Setup → Security** in the Omarchy menu which is used to configure the aur-scanner threshold.
+When the plugin is enabled, it will prompt you to install [aur-scanner](https://github.com/KiefStudioMA/ks-aur-scanner) if it is not already present. It will then configure a yay pre-install hook.
+The hook scans each package yay is about to install or update. Results are printed in the terminal. If findings meet your chosen severity threshold, you are asked whether to investigate them with your default Omarchy agent, then whether to continue the installation. If the scan cannot run for any reason the install is aborted to avoid silently bypassing this process.
 
-Disabling the plugin removes the hook and menu entry. You will be prompted to remove aur-scanner but you are not required to do so.
+Omarchy's default agent launcher runs with full permissions, which didn't seem to fit well with the philosophy of this plugin. The yay hook instead copies the package into its own workspace and starts the default agent inside a [bubblewrap](https://github.com/containers/bubblewrap) sandbox. The sandbox is built so that prompt injection cannot reach host secrets.
 
-The hook scans each package yay is about to install or update. Results are printed in the terminal. If findings meet your chosen severity threshold, you are asked whether to investigate them with your default Omarchy agent, then whether to continue the installation. If the scan cannot run for any reason the install is aborted to avoid silently bypassing the process.
+- Host credentials never enter the sandbox. A host-side broker reads API keys / OAuth tokens and attaches them to model requests. The agent only sees a one-time session token and `http://127.0.0.1:<port>`.
+- The sandbox shares the host network so the agent can look up package docs. It cannot read host files or environment secrets.
+- Environment is cleared. Fake home gets theme/UI files only — no `auth.json`, no session DBs, no skills, no MCP config.
+- The host root is not bound. Visible filesystem is `/usr`, TLS/DNS stubs, the agent install, a package copy, and fake home. Instruction files and workspace symlinks are stripped from the copy.
 
-Omarchy's default agent launcher runs with full permissions, which didn't seem to fit well with the philosophy of this plugin. The yay hook instead copies the package into its own workspace and starts the default agent inside a [bubblewrap](https://github.com/containers/bubblewrap) sandbox. The sandbox does **not** bind the host root: only `/usr`, TLS/DNS stubs, mise, a fake home, and the package copy are visible. Fake home gets login credentials plus non-secret prefs (theme/UI); session history, skills, and MCP config stay out. Process environment is cleared (selected provider API keys are re-injected so the model still works). Network stays up for the model API and web lookup; shell, skills, and MCP are denied. Nested instruction files and workspace symlinks are stripped from the package copy.
+## Agent authentication
 
-> [!CAUTION]
-> While precautions have been taken to minimize risks, using AI to analyze packages is unavoidably going to carry some risk of prompt injection.
+The broker uses a **provider API key** on the host. It does **not** use Claude Pro/Max or ChatGPT Plus/Codex website logins.
+
+| Works | Does not work |
+| --- | --- |
+| `ANTHROPIC_API_KEY` (`sk-ant-…` from [console.anthropic.com](https://console.anthropic.com)) | `claude login` / Claude Pro / Max |
+| `OPENAI_API_KEY` (`sk-…` from [platform.openai.com](https://platform.openai.com)) | `codex login` / ChatGPT Plus |
+
+Put the key in the environment or in OpenCode’s auth store. The sandbox never sees it.
 
 > [!NOTE]
-> The Codex and Crush agents are not supported as it is not possible to disable their shell permissions at this time — this presents a vector for them to leak keys from the environment.
+> Codex and Crush may run a shell inside the sandbox; they cannot see host secrets. GitHub Copilot cannot be pointed at the broker and so is not supported.
+
+> [!WARNING]
+> The sandbox should prevent malicious packages from leaking secrets or executing malicious code, however prompt injection may still make the model mis-report a package.
 
 ## Severity threshold
 
@@ -55,7 +68,8 @@ All plugin-related yay configuration will be removed regardless.
 ## Dependencies
 
 - [aur-scanner](https://github.com/KiefStudioMA/ks-aur-scanner) — prompted on first enable
-- `bubblewrap` (`bwrap`) — required to sandbox the investigation agent
+- `bubblewrap` (`bwrap`)
+- `python3`
 
 ## AI Disclosure
 

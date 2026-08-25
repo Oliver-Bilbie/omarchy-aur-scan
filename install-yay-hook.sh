@@ -39,8 +39,33 @@ install_hook() {
   fi
 }
 
+register_init() {
+  mkdir -p "$YAY_DIR"
+  touch "$INIT"
+  if grep -qF -- "$BEGIN" "$INIT"; then
+    if ! grep -qF -- "$END" "$INIT"; then
+      echo "obilbie.aur-scan: malformed markers in $INIT; not editing" >&2
+      exit 1
+    fi
+    tmp="$(mktemp)"
+    trap 'rm -f "$tmp"' EXIT
+    awk -v b="$BEGIN" -v e="$END" '$0 == b {skip=1; next} $0 == e {skip=0; next} !skip {print}' "$INIT" > "$tmp"
+    mv "$tmp" "$INIT"
+    trap - EXIT
+  fi
+  printf '\n%s\nrequire("hooks.obilbie-aur-scan")\n%s\n' "$BEGIN" "$END" >> "$INIT"
+  if ! grep -qF -- "$BEGIN" "$INIT" || ! grep -qF -- 'require("hooks.obilbie-aur-scan")' "$INIT"; then
+    echo "obilbie.aur-scan: failed to register hook in $INIT" >&2
+    exit 1
+  fi
+}
+
 if [[ ! -f $HOOK_SRC/init.lua || ! -f $HOOK_SRC/util.lua || ! -f $HOOK_SRC/agent.lua ]]; then
   echo "obilbie.aur-scan: hook source missing under $HOOK_SRC" >&2
+  exit 1
+fi
+if [[ ! -x $PLUGIN_DIR/omarchy-agent-sandbox.sh || ! -f $PLUGIN_DIR/broker.py ]]; then
+  echo "obilbie.aur-scan: sandbox/broker missing under $PLUGIN_DIR" >&2
   exit 1
 fi
 
@@ -58,7 +83,10 @@ if [[ ${1:-} == --update ]]; then
     exit 1
   fi
   install_hook
+  register_init
   "$PLUGIN_DIR/install-menu.sh"
+  mkdir -p "$STATE_DIR"
+  touch "$STATE_DIR/setup-complete"
   exit 0
 fi
 
@@ -89,25 +117,7 @@ if ! gum confirm $'AUR Scan will create a yay pre-install hook.\nThis writes ~/.
 fi
 
 install_hook
-
-touch "$INIT"
-if [[ -f $INIT ]] && grep -qF -- "$BEGIN" "$INIT"; then
-  if ! grep -qF -- "$END" "$INIT"; then
-    echo "obilbie.aur-scan: malformed markers in $INIT; not editing" >&2
-    exit 1
-  fi
-  tmp="$(mktemp)"
-  trap 'rm -f "$tmp"' EXIT
-  awk -v b="$BEGIN" -v e="$END" '$0 == b {skip=1; next} $0 == e {skip=0; next} !skip {print}' "$INIT" > "$tmp"
-  mv "$tmp" "$INIT"
-  trap - EXIT
-fi
-printf '\n%s\nrequire("hooks.obilbie-aur-scan")\n%s\n' "$BEGIN" "$END" >> "$INIT"
-if ! grep -qF -- "$BEGIN" "$INIT" || ! grep -qF -- 'require("hooks.obilbie-aur-scan")' "$INIT"; then
-  echo "obilbie.aur-scan: failed to register hook in $INIT" >&2
-  exit 1
-fi
-
+register_init
 "$PLUGIN_DIR/install-menu.sh"
 mkdir -p "$STATE_DIR"
 touch "$STATE_DIR/setup-complete"
